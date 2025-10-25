@@ -1,0 +1,401 @@
+package sorting;
+
+import java.util.*;
+
+public class SortingAnalysis {
+    
+    static class AnalysisResult {
+        int operationsCount;
+        int comparisonsCount;
+        long timeTaken;
+        
+        AnalysisResult(int ops, int comps, long time) {
+            this.operationsCount = ops;
+            this.comparisonsCount = comps;
+            this.timeTaken = time;
+        }
+        
+        double getTimeMs() {
+            return timeTaken / 1_000_000.0;
+        }
+    }
+    
+    // Алгоритм 1: Минимальный выбор
+    public static AnalysisResult minSelectionSort(int[] data) {
+        int ops = 0;
+        int comps = 0;
+        int size = data.length;
+        
+        for (int i = 0; i < size - 1; i++) {
+            int minPos = i;
+            for (int j = i + 1; j < size; j++) {
+                comps++;
+                if (data[j] < data[minPos]) {
+                    minPos = j;
+                    ops++;
+                }
+            }
+            if (minPos != i) {
+                int tmp = data[i];
+                data[i] = data[minPos];
+                data[minPos] = tmp;
+                ops++;
+            }
+        }
+        return new AnalysisResult(ops, comps, 0);
+    }
+    
+    // Алгоритм 2: Улучшенный метод пузырька
+    public static AnalysisResult improvedBubbleSort(int[] data) {
+        int ops = 0;
+        int comps = 0;
+        int size = data.length;
+        boolean changed;
+        
+        for (int i = 0; i < size - 1; i++) {
+            changed = false;
+            for (int j = 0; j < size - i - 1; j++) {
+                comps++;
+                if (data[j] > data[j + 1]) {
+                    int tmp = data[j];
+                    data[j] = data[j + 1];
+                    data[j + 1] = tmp;
+                    ops++;
+                    changed = true;
+                }
+            }
+            if (!changed) break;
+        }
+        return new AnalysisResult(ops, comps, 0);
+    }
+    
+    // Алгоритм 3: Вставки с шагом
+    public static AnalysisResult gapInsertionSort(int[] data, int step) {
+        int ops = 0;
+        int comps = 0;
+        int size = data.length;
+        
+        for (int i = step; i < size; i++) {
+            int current = data[i];
+            int j = i - step;
+            
+            while (j >= 0) {
+                comps++;
+                if (data[j] > current) {
+                    data[j + step] = data[j];
+                    ops++;
+                    j -= step;
+                } else {
+                    break;
+                }
+            }
+            data[j + step] = current;
+            ops++;
+        }
+        return new AnalysisResult(ops, comps, 0);
+    }
+    
+    // Алгоритм 4: Слияние без рекурсии
+    public static AnalysisResult nonRecursiveMergeSort(int[] data) {
+        int ops = 0;
+        int comps = 0;
+        int size = data.length;
+        
+        if (size <= 1) {
+            return new AnalysisResult(0, 0, 0);
+        }
+        
+        for (int block = 1; block < size; block *= 2) {
+            for (int left = 0; left < size; left += 2 * block) {
+                int middle = Math.min(left + block, size);
+                int right = Math.min(left + 2 * block, size);
+                
+                int[] leftPart = Arrays.copyOfRange(data, left, middle);
+                int[] rightPart = Arrays.copyOfRange(data, middle, right);
+                
+                int i = 0, j = 0, k = left;
+                
+                while (i < leftPart.length && j < rightPart.length) {
+                    comps++;
+                    if (leftPart[i] <= rightPart[j]) {
+                        data[k] = leftPart[i];
+                        i++;
+                    } else {
+                        data[k] = rightPart[j];
+                        j++;
+                    }
+                    k++;
+                    ops++;
+                }
+                
+                while (i < leftPart.length) {
+                    data[k] = leftPart[i];
+                    i++;
+                    k++;
+                    ops++;
+                }
+                
+                while (j < rightPart.length) {
+                    data[k] = rightPart[j];
+                    j++;
+                    k++;
+                    ops++;
+                }
+            }
+        }
+        return new AnalysisResult(ops, comps, 0);
+    }
+    
+    // Алгоритм 5: Шелл с последовательностью Кнута
+    public static AnalysisResult knuthShellSort(int[] data) {
+        int ops = 0;
+        int comps = 0;
+        int size = data.length;
+        
+        int step = 1;
+        while (step < size / 3) {
+            step = 3 * step + 1;
+        }
+        
+        while (step >= 1) {
+            for (int i = step; i < size; i++) {
+                int temp = data[i];
+                int j = i;
+                
+                while (j >= step) {
+                    comps++;
+                    if (data[j - step] > temp) {
+                        data[j] = data[j - step];
+                        ops++;
+                        j -= step;
+                    } else {
+                        break;
+                    }
+                }
+                data[j] = temp;
+                ops++;
+            }
+            step /= 3;
+        }
+        return new AnalysisResult(ops, comps, 0);
+    }
+    
+    // Алгоритм 6: Быстрая с медианой
+    private static int medianPartition(int[] data, int left, int right, AnalysisResult res) {
+        int center = left + (right - left) / 2;
+        
+        if (data[left] > data[center]) {
+            swap(data, left, center);
+            res.operationsCount++;
+        }
+        if (data[left] > data[right]) {
+            swap(data, left, right);
+            res.operationsCount++;
+        }
+        if (data[center] > data[right]) {
+            swap(data, center, right);
+            res.operationsCount++;
+        }
+        
+        swap(data, center, right - 1);
+        res.operationsCount++;
+        int pivot = data[right - 1];
+        
+        int i = left;
+        for (int j = left; j < right - 1; j++) {
+            res.comparisonsCount++;
+            if (data[j] <= pivot) {
+                swap(data, i, j);
+                res.operationsCount++;
+                i++;
+            }
+        }
+        swap(data, i, right - 1);
+        res.operationsCount++;
+        return i;
+    }
+    
+    public static AnalysisResult enhancedQuickSort(int[] data, int left, int right) {
+        AnalysisResult res = new AnalysisResult(0, 0, 0);
+        
+        if (left < right) {
+            if (right - left > 10) {
+                int pivot = medianPartition(data, left, right, res);
+                AnalysisResult leftRes = enhancedQuickSort(data, left, pivot - 1);
+                AnalysisResult rightRes = enhancedQuickSort(data, pivot + 1, right);
+                
+                res.operationsCount += leftRes.operationsCount + rightRes.operationsCount;
+                res.comparisonsCount += leftRes.comparisonsCount + rightRes.comparisonsCount;
+            } else {
+                AnalysisResult insertionRes = gapInsertionSort(data, 1);
+                res.operationsCount += insertionRes.operationsCount;
+                res.comparisonsCount += insertionRes.comparisonsCount;
+            }
+        }
+        return res;
+    }
+    
+    // Алгоритм 7: Пирамидальная снизу вверх
+    private static void heapify(int[] data, int start, int end, AnalysisResult res) {
+        int root = start;
+        
+        while (2 * root + 1 <= end) {
+            int child = 2 * root + 1;
+            int swapIndex = root;
+            
+            res.comparisonsCount++;
+            if (data[swapIndex] < data[child]) {
+                swapIndex = child;
+            }
+            
+            res.comparisonsCount++;
+            if (child + 1 <= end && data[swapIndex] < data[child + 1]) {
+                swapIndex = child + 1;
+            }
+            
+            if (swapIndex == root) {
+                return;
+            } else {
+                swap(data, root, swapIndex);
+                res.operationsCount++;
+                root = swapIndex;
+            }
+        }
+    }
+    
+    public static AnalysisResult bottomUpHeapSort(int[] data) {
+        AnalysisResult res = new AnalysisResult(0, 0, 0);
+        int size = data.length;
+        
+        for (int start = (size - 2) / 2; start >= 0; start--) {
+            heapify(data, start, size - 1, res);
+        }
+        
+        for (int end = size - 1; end > 0; end--) {
+            swap(data, 0, end);
+            res.operationsCount++;
+            heapify(data, 0, end - 1, res);
+        }
+        
+        return res;
+    }
+    
+    private static void swap(int[] data, int i, int j) {
+        int tmp = data[i];
+        data[i] = data[j];
+        data[j] = tmp;
+    }
+    
+    private static AnalysisResult measurePerformance(int[] data, Consumer<int[]> algorithm) {
+        int[] testData = data.clone();
+        long start = System.nanoTime();
+        algorithm.accept(testData);
+        long end = System.nanoTime();
+        
+        return new AnalysisResult(0, 0, end - start);
+    }
+    
+    public static void runPerformanceTest() {
+        System.out.println("\nТЕСТИРОВАНИЕ ПРОИЗВОДИТЕЛЬНОСТИ АЛГОРИТМОВ");
+        System.out.println("===============================================");
+        
+        int[] sizes = {10, 50, 100};
+        String[] names = {
+            "Минимальный выбор",
+            "Улучшенный пузырек",
+            "Вставки с шагом",
+            "Слияние без рекурсии",
+            "Шелл Кнута",
+            "Быстрая с медианой",
+            "Пирамидальная снизу-вверх"
+        };
+        
+        Consumer<int[]>[] algorithms = new Consumer[] {
+            arr -> minSelectionSort(arr),
+            arr -> improvedBubbleSort(arr),
+            arr -> gapInsertionSort(arr, 1),
+            arr -> nonRecursiveMergeSort(arr),
+            arr -> knuthShellSort(arr),
+            arr -> enhancedQuickSort(arr, 0, arr.length - 1),
+            arr -> bottomUpHeapSort(arr)
+        };
+        
+        Random rand = new Random();
+        
+        for (int size : sizes) {
+            System.out.println("\nМассив размером: " + size + " элементов");
+            System.out.println("-----------------------------------------------");
+            
+            int[] testArray = new int[size];
+            for (int i = 0; i < size; i++) {
+                testArray[i] = rand.nextInt(1000) + 1;
+            }
+            
+            for (int i = 0; i < algorithms.length; i++) {
+                AnalysisResult result = measurePerformance(testArray, algorithms[i]);
+                System.out.printf("%-25s | Время: %6.3fms%n", 
+                    names[i], result.getTimeMs());
+            }
+        }
+    }
+    
+    public static void main(String[] args) {
+        int[] initial = {64, 34, 25, 12, 22, 11, 90, 5, 77, 30};
+        
+        System.out.println("АНАЛИЗ АЛГОРИТМОВ СОРТИРОВКИ В JAVA");
+        System.out.println("Начальный массив: " + Arrays.toString(initial));
+        System.out.println();
+        
+        String[] algorithmNames = {
+            "Минимальный выбор",
+            "Улучшенный пузырек",
+            "Вставки с шагом",
+            "Слияние без рекурсии", 
+            "Шелл Кнута",
+            "Быстрая с медианой",
+            "Пирамидальная снизу-вверх"
+        };
+        
+        Consumer<int[]>[] algorithms = new Consumer[] {
+            arr -> minSelectionSort(arr),
+            arr -> improvedBubbleSort(arr),
+            arr -> gapInsertionSort(arr, 1),
+            arr -> nonRecursiveMergeSort(arr),
+            arr -> knuthShellSort(arr),
+            arr -> enhancedQuickSort(arr, 0, arr.length - 1),
+            arr -> bottomUpHeapSort(arr)
+        };
+        
+        int[][] outputs = new int[algorithms.length][];
+        AnalysisResult[] results = new AnalysisResult[algorithms.length];
+        
+        for (int i = 0; i < algorithms.length; i++) {
+            int[] arr = initial.clone();
+            long start = System.nanoTime();
+            results[i] = measurePerformance(arr, algorithms[i]);
+            long end = System.nanoTime();
+            results[i].timeTaken = end - start;
+            outputs[i] = arr;
+            
+            System.out.println(algorithmNames[i] + ": " + Arrays.toString(arr));
+            System.out.printf("%-25s Действий: %d, Сравнений: %d, Время: %.3fms%n%n", 
+                "", results[i].operationsCount, results[i].comparisonsCount, results[i].getTimeMs());
+        }
+        
+        boolean correct = true;
+        int[] sortedInitial = initial.clone();
+        Arrays.sort(sortedInitial);
+        
+        for (int[] output : outputs) {
+            if (!Arrays.equals(output, sortedInitial)) {
+                correct = false;
+                break;
+            }
+        }
+        
+        System.out.println("ВЕРИФИКАЦИЯ: " + 
+            (correct ? "Все алгоритмы работают верно" : "Найдены несоответствия"));
+        
+        runPerformanceTest();
+    }
+}
